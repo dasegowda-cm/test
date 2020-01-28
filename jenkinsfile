@@ -1,0 +1,51 @@
+pipeline {
+    agent { label 'G1' }
+    stages { 
+        stage ("Build with Ansible") {
+            steps {
+                sh "ansible-playbook Install-Dep.yml"
+            }
+        }
+        stage ("SCM Checkin-1") {
+            steps {
+                git branch: 'master', url: 'https://github.com/dasegowda-cm/labsetup01'
+            }
+        }
+        stage ("maven build") {
+            tools {
+                maven 'maven-3.6.2'
+                jdk 'JDK1.8'
+            }
+            steps {
+                sh "mvn package"
+            }
+        }    
+        stage ('Build Image and run container') {
+	        input {
+                 message 'Mvn Package is Successfull, can I Proceed'
+            }
+            steps {
+            /* we would be executing the docker-compose in the working directory, */
+            /*bcz of the docker build issue as it can understand where is the war file. 
+            we will not be able to give the complete path as src to copy the war file */
+                sh "sudo docker build . -t dgowda2018/tomcatcust01"
+                sh "sudo docker run -d -p 80:8080 --name cont1 dgowda2018/tomcatcust01"
+            }
+        }
+        stage ('push it to docker hub') {
+            steps {
+                sh "sudo docker push dgowda2018/tomcatcust01"
+            }
+        }
+        stage ('clean the image and the current folder') {
+            input {
+                 message 'can I Proceed to delete the docker containers'
+            }
+            steps {
+                sh "sudo docker rm cont1 -f"
+                sh "sudo docker image rmi dgowda2018/tomcatcust01"
+                sh "sudo rm -Rf *"
+            }
+        }
+    }
+}

@@ -1,0 +1,20 @@
+---
+    - name: Setup Slave for Jenkins Jobs
+      hosts: slave
+      become: true
+      
+      tasks:
+      - name: Install dependancies 
+        yum: 
+          name: 
+          - java-1.8.0-openjdk-devel
+          - docker
+          state: present
+      - name: start the docker service
+        service:
+          name: docker
+          state: started
+      - name: Enable the docker service
+        service:
+          name: docker
+          enabled: yes
